@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SpaceViewType {
+  LIST
+  CALENDAR
+  KANBAN
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  spaces            Space[]
+  pushSubscriptions PushSubscription[]
+
+  @@map("users")
+}
+
+model PushSubscription {
+  id                     String    @id @default(uuid())
+  endpoint               String    @unique
+  p256dh                 String
+  auth                   String
+  timezoneOffsetMinutes  Int
+  lastDailySummaryDate   String?
+  userId                 String
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt              DateTime  @default(now())
+
+  @@map("push_subscriptions")
+  @@index([userId])
+}
+
+model Space {
+  id         String        @id @default(uuid())
+  name       String
+  icon       String?
+  color      String?
+  viewType   SpaceViewType @default(LIST)
+  isActive   Boolean       @default(true)
+  position   Int           @default(0)
+  ownerId    String
+  owner      User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  tasks Task[]
+
+  @@map("spaces")
+  @@index([ownerId])
+}
+
+model Task {
+  id             String       @id @default(uuid())
+  title          String
+  description    String?
+  status         TaskStatus   @default(TODO)
+  priority       TaskPriority @default(MEDIUM)
+  dueDate        DateTime?
+  reminderSentAt DateTime?
+  position       Int          @default(0)
+  spaceId        String
+  space          Space        @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  subtasks Subtask[]
+
+  @@map("tasks")
+  @@index([spaceId])
+}
+
+model Subtask {
+  id        String   @id @default(uuid())
+  title     String
+  done      Boolean  @default(false)
+  position  Int      @default(0)
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subtasks")
+  @@index([taskId])
+}
