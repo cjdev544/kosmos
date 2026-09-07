@@ -19,7 +19,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # jsdom 30 (used by the frontend tests) requires Node ^22.22.2,
+          # ^24.15.0, or >=26 — Node 20 fails at runtime with a webidl error.
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
